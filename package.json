@@ -1,0 +1,28 @@
+{
+  "name": "psql_intro",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "build:css": "npx @tailwindcss/cli -i ./input.css -o ./public/css/output.css",
+    "watch:css": "npx @tailwindcss/cli -i ./input.css -o ./public/css/output.css --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "ejs": "^5.0.2",
+    "express": "^5.2.1",
+    "express-validator": "^7.3.2",
+    "pg": "^8.20.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.0",
+    "nodemon": "^3.1.14",
+    "tailwindcss": "^4.3.0"
+  }
+}
