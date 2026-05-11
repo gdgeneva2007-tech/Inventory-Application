@@ -64,7 +64,6 @@ const viewOne=async(req,res,next)=>{
 const createItem=async (req,res,next)=>{
     try{
         const categories=await db.getAllCategories();
-        console.log(categories)
         res.render("items/form",{title:"Create Item",errors:[],formdata:{},formAction:"/items/create",categories:categories})
     }catch(err){
         next(err)

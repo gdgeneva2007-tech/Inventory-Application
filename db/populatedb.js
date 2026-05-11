@@ -4,8 +4,8 @@ require("dotenv").config();
 
 const {Client}=require("pg")
 const SQL=`
-DROP TABLE IF EXISTS items;
-DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS items CASCADE;
+DROP TABLE IF EXISTS categories CASCADE;
 
 CREATE TABLE IF NOT EXISTS categories (
     id SERIAL PRIMARY KEY,
