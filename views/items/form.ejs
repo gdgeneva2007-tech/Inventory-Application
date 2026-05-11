@@ -1,0 +1,34 @@
+<%- include("../partials/header") %>
+<% if(errors.length) {%>
+    <div class="w-full border-4 border-red-600 p-6">
+        <% for( let i = 0; i < errors.length; i++ ) { %>
+            <p class="text-red-600"><%= errors[i].msg %></p>
+            <% console.log(errors[i].msg) %>
+        <% } %>
+    </div>
+<% } %>
+ 
+<form action="<%= formAction %>" method="POST" class="p-5 m-auto border-8 border-amber-500 rounded-2xl grid grid-cols-1">
+    <label for="name" class="text-cyan-600 text-2xl font-bold">Item name: </label>
+    <input type="text" name="name" id="name" value="<%= formdata.name||"" %>">
+    <label for="description" class="text-cyan-600 text-2xl font-bold">Item description: </label>
+    <input type="text" name="description" id="description" value="<%= formdata.description||'' %>">
+    <label for="origin" class="text-cyan-600 text-2xl font-bold">Item origin: </label>
+    <input type="text" name="origin" id="origin" value="<%= formdata.origin||'' %>">
+
+    <label for="price" class="text-cyan-600 text-2xl font-bold">Item price: </label>
+    <input type="number" step="0.01" min="0" placeholder="0.00" name="price" id="price" value="<%= formdata.price||'' %>">
+
+    <label for="stock" class="text-cyan-600 text-2xl font-bold">Item stock: </label>
+    <input type="number" step="1" min="0" name="stock" id="stock" value="<%= formdata.stock||'' %>">
+
+    <label for="category_id">Choose a category:</label>
+    <select name="category_id" id="category_id">
+        <% for( let i = 0; i < categories.length; i++ ) { %>
+            <option value="<%= categories[i].id %>" <% formdata.category_id&&formdata.category_id==categories[i].id?'selected':'' %>><%= categories[i].name %></option>
+        <% } %>
+    </select>
+
+    <button type="submit" class="rounded-2xl bg-purple-500 p-4 max-w-32">Submit</button>
+</form>
+<%- include("../partials/footer") %> 

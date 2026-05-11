@@ -1,0 +1,17 @@
+<%- include("../partials/header") %>
+<h1 class="text-blue-600 "><%= item.name %></h1>
+<div class="flex flex-col gap-5 *:text-2xl *:text-purple-600 border-4 border-purple-600 p-5 rounded-2xl">
+    <p>Name: <%= item.name %></p>
+    <p>Price: <%= item.price %></p>
+    <p>Description: <%= item.description %></p>
+    <p>Origin: <%= item.origin %></p>
+    <p>Category: <%= category %></p>
+    <p>Stock: <%= item.stock %></p>
+</div>
+<button class="rounded-2xl bg-amber-500 p-4 text-white">
+    <a href="/items/<%= item.id %>/edit">Edit</a>
+</button>
+<button class="rounded-2xl bg-amber-500 p-4 text-white">
+    <a href="/items/<%= item.id %>/delete">Delete</a>
+</button>
+<%- include("../partials/footer") %>

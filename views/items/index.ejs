@@ -1,0 +1,16 @@
+<%- include("../partials/header") %>
+<div class="grid grid-cols-4 gap-5 ">
+    <% for( let i = 0; i< items.length; i++ ) { %>
+        <div class="h-40 flex flex-col justify-center items-center rounded-2xl bg-purple-600">
+            <a href="items/<%= items[i].id %>" class=" text-white text-4xl" >
+                <%= items[i].name %>
+            </a>
+            <a href="items/<%= items[i].id %>/delete" class="rounded-2xl bg-orange-600 text-white text-4xl" >
+                Delete
+            </a>
+        </div>
+        
+    <% } %>
+</div>
+
+<%- include("../partials/footer") %>

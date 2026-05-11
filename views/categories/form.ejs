@@ -1,0 +1,18 @@
+<%- include("../partials/header") %>
+<% if(errors.length) {%>
+    <div class="w-full border-4 border-red-600 p-6">
+        <% for( let i = 0; i < errors.length; i++ ) { %>
+            <p class="text-red-600"><%= errors[i].msg %></p>
+            <% console.log(errors[i].msg) %>
+        <% } %>
+    </div>
+<% } %>
+ 
+<form action="<%= formAction %>" method="POST" class="p-5 m-auto border-8 border-amber-500 rounded-2xl grid grid-cols-1">
+    <label for="name" class="text-cyan-600 text-2xl font-bold">Category name: </label>
+    <input type="text" name="name" id="name" value="<%= formdata.name||"" %>">
+    <label for="description" class="text-cyan-600 text-2xl font-bold">Category description: </label>
+    <input type="text" name="description" id="description" value="<%= formdata.description||'' %>">
+    <button type="submit" class="rounded-2xl bg-purple-500 p-4 max-w-32">Submit</button>
+</form>
+<%- include("../partials/footer") %> 

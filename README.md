@@ -1,111 +1,518 @@
-# Environment variables
+# What this project actually is
 
-keeps secretes out of your code
-Node.js has a built-in object called process.env. It holds environment variables - key/value pairs available to your program.
+A CRUD application with:
 
-// You can read any environment variable like this:
-console.log(process.env.HOME); // /home/yourname
-console.log(process.env.PATH); // /usr/bin:/bin:...
+- A database with RELATED tables (not just one table)
+- Full Create, Read, Update, Delete for EVERYTHING
+- A real folder structure used in professional projects
+- Deployed and accessible on the internet
 
-// You can set your OWN variables too:
-// process.env.MY_SECRET = "hello" ← but this only lasts during runtime
+# The Core Concept: Related Tables
 
-.env file - this is NOT JavaScript, no quotes needed usually
+categories table items table
+───────────────── ──────────────────────────────
+id | name id | name | price | category_id
+1 | Electronics 1 | Phone | 999 | 1
+2 | Clothing 2 | Shirt | 29 | 2
+3 | Laptop| 1299 | 1
+↑
+this links to categories.id
 
-DATABASE_URL=postgresql://geneva:0317@localhost:5432/top_users
-PORT=3000
-SECRET_KEY=mysecretkey123
+# A Tea Shop Inventory
 
-# How do developers handle database setup?
+Has natural categories (Green Tea, Black Tea, Herbal Tea, Equipment)
+Has natural item properties (name, description, price, stock quantity, origin)
 
-Option 1: They copy the db folder from previous project ,change the database name in .env, and start fresh with new queries
+HOME PAGE
+→ Shows all categories as cards
+→ Click a category to see its items
 
-Option 2: Create a starter template
+CATEGORIES
+→ View all categories GET /categories
+→ View one category + items GET /categories/:id
+→ Create category form GET /categories/create
+→ Handle create POST /categories/create
+→ Edit category form GET /categories/:id/edit
+→ Handle edit POST /categories/:id/edit
+→ Delete category POST /categories/:id/delete
 
-my-express-starter/
+ITEMS
+→ View all items GET /items
+→ View one item GET /items/:id
+→ Create item form GET /items/create
+→ Handle create POST /items/create
+→ Edit item form GET /items/:id/edit
+→ Handle edit POST /items/:id/edit
+→ Delete item POST /items/:id/delete
+
+# Database Tables
+
+categories
+──────────────────────────────
+id SERIAL PRIMARY KEY
+name VARCHAR(100) NOT NULL
+description TEXT
+
+items
+──────────────────────────────────────
+id SERIAL PRIMARY KEY
+name VARCHAR(100) NOT NULL
+description TEXT
+price DECIMAL(10, 2) NOT NULL
+stock INTEGER NOT NULL DEFAULT 0
+origin VARCHAR(100)
+category_id INTEGER REFERENCES categories(id)
+
+# The Delete Decision:
+
+If you delete a category:
+→ All items in that category get their
+category_id set to NULL
+(they become "uncategorized" items)
+→ This is called ON DELETE SET NULL in SQL
+→ Better than deleting all items accidentally
+
+If you delete an item:
+→ Just delete it, nothing else is affected
+
+\*\* UPDATE items SET category_id = NULL WHERE category_id=1;
+
+\*\* For SET NULL to work, your category_id must not have a NOT NULL constraint
+
+# Folder Structure
+
+tea-shop-inventory/
+├── controllers/
+│ ├── categoryController.js ← all category logic
+│ └── itemController.js ← all item logic
 ├── db/
-│ └── pool.js
+│ ├── pool.js ← database connection
+│ ├── queries.js ← all SQL query functions
+│ └── populatedb.js ← seed script
 ├── routes/
-│ └── index.js
+│ ├── index.js ← home route
+│ ├── categories.js ← category routes
+│ └── items.js ← item routes
 ├── views/
-│ └── partials/
+│ ├── partials/
+│ │ ├── header.ejs
+│ │ └── footer.ejs
+│ ├── index.ejs
+│ ├── categories/
+│ │ ├── index.ejs ← all categories
+│ │ ├── detail.ejs ← one category + its items
+│ │ └── form.ejs ← create AND edit (reused)
+│ └── items/
+│ ├── index.ejs ← all items
+│ ├── detail.ejs ← one item
+│ └── form.ejs ← create AND edit (reused)
+├── public/
+│ ├── css/
+│ │ └── output.css ← tailwind compiled output
+│ └── images/
 ├── app.js
+├── .env
 ├── .env.example
-└── .gitignore
+├── .gitignore
+├── package.json
+├── tailwind.config.js
+└── input.css ← tailwind source file
 
-When starting a new project:
-Just copy this folder and start adding features
+# New Concepts: Controllers
 
-Option 3: Use framework CLI tools
+routes/categories.js
+router.get("/", categoryController.getAll);
+// route file just says WHICH controller handles it
+// clean and short
 
-# What a typical day looks like when working on a Node + PostgreSQL project:
+controllers/categoryController.js
+exports.getAll = async (req, res) => {
+// ALL the logic lives here
+// organized by feature
+};
 
-1. cd my-project
-2. sudo service postgresql start (on linux)
-3. npm run dev (start your dev server)
-4. Open browser to localhost:3000
-5. Open your code editor
-   Now you are ready to work
+# Basic Express Validator pattern
 
-# When you need a new feature:
+In your controller:
 
-Step 1: Think about the SQL first
-─────────────────────────────────
-What SQL do I need?
-DELETE FROM usernames WHERE id = $1
-Test it in pgAdmin or psql first to make sure it works
+1. Define validation rules
+2. Run them
+3. Check if there are errors
+4. If errors: re-render form with errors and old input
+5. If clean: save to database and redirect
 
-Step 2: Add the query function in queries.js
-─────────────────────────────────────────────
-async function deleteUsername(id) {
-await pool.query("DELETE FROM usernames WHERE id = $1", [id]);
+# Real implementation of express validator - controllers/categoryController.js
+
+// controllers/categoryController.js
+
+const db = require("../db/queries");
+
+// Import these two things from express-validator
+// body → validates req.body fields (form inputs)
+// validationResult → collects all the errors after checking
+const { body, validationResult } = require("express-validator");
+
+// ─────────────────────────────────────────────────────
+// VALIDATION RULES
+// Define once, reuse for both CREATE and EDIT
+// This is an array of rules
+// ─────────────────────────────────────────────────────
+const categoryValidationRules = [
+// body("name") means: look at req.body.name
+body("name")
+.trim()
+// .notEmpty() fails if the value is "" after trimming
+.notEmpty()
+.withMessage("Category name is required.")
+// .isLength() checks the string length
+.isLength({ max: 100 })
+.withMessage("Category name must be under 100 characters."),
+
+body("description")
+.trim()
+// .optional() means: if this field is empty, skip other rules
+// useful for fields that are not required
+.optional({ values: "falsy" })
+.isLength({ max: 500 })
+.withMessage("Description must be under 500 characters.")
+];
+
+// ─────────────────────────────────────────────────────
+// GET /categories
+// Show all categories
+// ─────────────────────────────────────────────────────
+const getAllCategories = async (req, res) => {
+const categories = await db.getAllCategories();
+res.render("categories/index", {
+title: "All Categories",
+categories
+});
+};
+
+// ─────────────────────────────────────────────────────
+// GET /categories/:id
+// Show one category and its items
+// ─────────────────────────────────────────────────────
+const getCategoryDetail = async (req, res) => {
+const { id } = req.params;
+const category = await db.getCategoryById(id);
+
+if (!category) {
+return res.status(404).render("notFound", { title: "Not Found" });
 }
 
-Step 3: Add the route
-─────────────────────
-router.post("/delete/:id", async (req, res) => {
-await db.deleteUsername(req.params.id);
-res.redirect("/");
+const items = await db.getItemsByCategory(id);
+
+res.render("categories/detail", {
+title: category.name,
+category,
+items
+});
+};
+
+// ─────────────────────────────────────────────────────
+// GET /categories/create
+// Show the create form
+// ─────────────────────────────────────────────────────
+const getCreateForm = (req, res) => {
+res.render("categories/form", {
+title: "Add Category",
+// errors is empty on first visit
+errors: [],
+// formData is empty on first visit
+// EJS uses this to repopulate inputs after errors
+formData: {}
+});
+};
+
+// ─────────────────────────────────────────────────────
+// POST /categories/create
+// Handle create form submission
+//
+// Notice: categoryValidationRules is exported separately
+// The route file will use it as middleware BEFORE this runs
+// ─────────────────────────────────────────────────────
+const postCreateForm = async (req, res) => {
+// STEP 1: Collect validation results
+// validationResult(req) reads all the errors that
+// the validation middleware found
+const errors = validationResult(req);
+
+// STEP 2: Check if there are errors
+if (!errors.isEmpty()) {
+// errors.isEmpty() returns true if NO errors
+// so !errors.isEmpty() means "there ARE errors"
+
+    return res.render("categories/form", {
+      title: "Add Category",
+      // errors.array() converts errors to a plain array:
+      // [
+      //   { path: "name", msg: "Category name is required." },
+      //   { path: "description", msg: "..." }
+      // ]
+      errors: errors.array(),
+      // Send their input back so they don't retype
+      formData: req.body
+    });
+
+}
+
+// STEP 3: No errors - safe to save
+await db.createCategory({
+name: req.body.name.trim(),
+description: req.body.description ? req.body.description.trim() : ""
 });
 
-Step 4: Update the view
-───────────────────────
-Add a delete button next to each username
+res.redirect("/categories");
+};
 
-Step 5: Test in browser
-───────────────────────
-Click delete → check if it works
+// ─────────────────────────────────────────────────────
+// GET /categories/:id/edit
+// Show the edit form prefilled with existing data
+// ─────────────────────────────────────────────────────
+const getEditForm = async (req, res) => {
+const { id } = req.params;
+const category = await db.getCategoryById(id);
 
-Layers:
-Browser (what user sees)
-↕ HTTP requests/responses
-Routes (traffic controller)
-↕ calls functions
-queries.js (speaks to database)
-↕ SQL queries
-PostgreSQL (stores data)
+if (!category) {
+return res.status(404).render("notFound", { title: "Not Found" });
+}
 
-1. First: what SQL do I need? (bottom layer)
-2. Then: add it to queries.js
-3. Then: add a route that calls it
-4. Then: update the view (top layer)
+res.render("categories/form", {
+title: "Edit Category",
+errors: [],
+// Pass existing data so form is pre-filled
+formData: category
+});
+};
 
-# SQL you should know by heart (use constantly)
+// ─────────────────────────────────────────────────────
+// POST /categories/:id/edit
+// Handle edit form submission
+// ─────────────────────────────────────────────────────
+const postEditForm = async (req, res) => {
+const { id } = req.params;
+const errors = validationResult(req);
 
-SELECT \* FROM tablename;
+if (!errors.isEmpty()) {
+return res.render("categories/form", {
+title: "Edit Category",
+errors: errors.array(),
+formData: req.body
+});
+}
 
-SELECT \* FROM tablename WHERE column =$1;
+await db.updateCategory(id, {
+name: req.body.name.trim(),
+description: req.body.description ? req.body.description.trim() : ""
+});
 
-INSERT INTO tablename (col1,col2) VALUES ($1,$2);
+res.redirect(`/categories/${id}`);
+};
 
-UPDATE tablename SET column=$1 WHERE id=$2;
+// ─────────────────────────────────────────────────────
+// POST /categories/:id/delete
+// Delete a category
+// ─────────────────────────────────────────────────────
+const deleteCategory = async (req, res) => {
+const { id } = req.params;
+await db.deleteCategory(id);
+res.redirect("/categories");
+};
 
-DELETE FROM tablename WHERE id=$1;
+// Export everything
+module.exports = {
+categoryValidationRules,
+getAllCategories,
+getCategoryDetail,
+getCreateForm,
+postCreateForm,
+getEditForm,
+postEditForm,
+deleteCategory
+};
 
-# Run both in separate terminals:
+# routes/categories.js - How validation plugs in
 
-Terminal 1: runs your express server
-npm run dev
+// routes/categories.js
 
-Terminal 2: watches for tailwind class changes
-npm run watch:css
+const express = require("express");
+const router = express.Router();
+
+const {
+categoryValidationRules,
+getAllCategories,
+getCategoryDetail,
+getCreateForm,
+postCreateForm,
+getEditForm,
+postEditForm,
+deleteCategory
+} = require("../controllers/categoryController");
+
+// READ
+router.get("/", getAllCategories);
+router.get("/create", getCreateForm);
+router.get("/:id", getCategoryDetail);
+router.get("/:id/edit", getEditForm);
+
+// WRITE
+// Notice categoryValidationRules is in the MIDDLE
+// It runs BEFORE postCreateForm
+// This is Express middleware chaining
+//
+// Request flow:
+// POST /create
+// → categoryValidationRules runs (checks all rules, attaches errors to req)
+// → postCreateForm runs (reads those errors with validationResult(req))
+router.post("/create", categoryValidationRules, postCreateForm);
+router.post("/:id/edit", categoryValidationRules, postEditForm);
+router.post("/:id/delete", deleteCategory);
+
+module.exports = router;
+
+# How display errors in EJS - views/categories/form.ejs
+
+<%- include('../partials/header') %>
+
+<div class="max-w-xl mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold text-amber-900 mb-6">
+    <%= title %>
+  </h1>
+
+<%-- ERROR BOX - only shows if there are errors --%>
+<% if (errors.length > 0) { %>
+
+<div class="bg-red-50 border border-red-200 border-l-4 border-l-red-500 rounded-lg p-4 mb-6">
+<p class="font-semibold text-red-700 mb-2">
+Please fix the following:
+</p>
+<ul class="list-disc list-inside space-y-1">
+<% errors.forEach(function(error) { %>
+<li class="text-red-600 text-sm">
+<%- error.msg %>
+<%-- error.msg is the .withMessage() text you wrote --%>
+</li>
+<% }) %>
+</ul>
+</div>
+<% } %>
+
+  <form
+    action="<%= formData.id ? `/categories/${formData.id}/edit` : '/categories/create' %>"
+    method="POST"
+    class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5"
+  >
+    <%-- NAME FIELD --%>
+    <div>
+      <label
+        for="name"
+        class="block text-sm font-medium text-gray-700 mb-1"
+      >
+        Category Name <span class="text-red-500">*</span>
+      </label>
+      <input
+        type="text"
+        id="name"
+        name="name"
+        value="<%= formData.name || '' %>"
+        placeholder="e.g. Green Tea"
+        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+      >
+    </div>
+
+    <%-- DESCRIPTION FIELD --%>
+    <div>
+      <label
+        for="description"
+        class="block text-sm font-medium text-gray-700 mb-1"
+      >
+        Description
+      </label>
+      <textarea
+        id="description"
+        name="description"
+        rows="4"
+        placeholder="Describe this category..."
+        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none"
+      ><%= formData.description || '' %></textarea>
+    </div>
+
+    <%-- BUTTONS --%>
+    <div class="flex gap-3 pt-2">
+      <a
+        href="/categories"
+        class="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition"
+      >
+        Cancel
+      </a>
+      <button
+        type="submit"
+        class="px-6 py-2 bg-amber-700 text-white rounded-lg hover:bg-amber-800 transition font-medium"
+      >
+        <%= formData.id ? 'Save Changes' : 'Add Category' %>
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<%- include('../partials/footer') %>
+
+# All validator methods you will use
+
+body("fieldName")
+.trim() // remove whitespace first
+.notEmpty() // must not be empty
+.withMessage("custom message") // message for the rule above
+.isLength({ min: 2, max: 100 }) // string length
+.isFloat({ min: 0 }) // decimal number
+.isInt({ min: 0 }) // whole number
+.isEmail() // valid email format
+.optional({ values: "falsy" }) // skip rules if field is empty
+.custom((value) => { // write your own rule
+if (someCondition) {
+throw new Error("custom error message");
+}
+return true;
+})
+
+# Don't miss 'await' in Controllers
+
+# Mind the routes order
+
+![alt text](image.png)
+
+# <% vs <%= in EJS
+
+<% %> Runs JS only. Its results is not inserted into the HTML. (Computed but never shown)
+<%= > Runs an expression and prints the result into the template (HTML escaped by default). Use it when you want output: text, attributes, selected, etc
+
+# Error handling:
+
+Rule: any function that uses req.params.id needs BOTH guards
+any function that touches the database needs try/catch
+
+1. Guard against non-numeric ids like categories/abc
+2. Guard against id that does not exist in database
+
+# try/catch for database calls
+
+Add a global error handler in app.js:
+app.use((err,req,res,next)=>{
+console.error(err.stack)
+res.status(500).render("error",{
+title:"Server Error",
+message:"Something went wrong. Please try again"
+})
+})
+
+Then in controllers use try/catch with next:
+const viewAll =async (req,res,next)=>{
+try{
+const categories=await db.getAllCategories();
+res.render("categories/index",{title:"All categories",categories})
+}catch(err){
+next(err); //passes error to the global handler above
+}
+}

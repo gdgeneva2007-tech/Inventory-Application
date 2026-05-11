@@ -1,0 +1,10 @@
+<%- include("./partials/header") %>
+<div class="grid grid-cols-4 gap-5 ">
+    <% for( let i = 0; i< categories.length; i++ ) { %>
+        <a href="categories/<%= categories[i].id %>" class="h-40 text-center rounded-2xl bg-blue-600 text-white text-4xl" >
+            <%= categories[i].name %>
+        </a>
+    <% } %>
+</div>
+
+<%- include("./partials/footer") %>

@@ -1,0 +1,19 @@
+<%- include("../partials/header") %>
+<h1 class="text-blue-600 "><%= category.name %></h1>
+<div class="grid grid-cols-4 gap-5 ">
+    <% for( let i = 0; i< items.length; i++ ) { %>
+        <a href="/items/<%= items[i].id %>" class="h-40 text-center rounded-2xl bg-purple-600 text-white text-4xl" >
+            <%= items[i].name %>
+        </a>
+    <% } %>
+</div>
+<button class="rounded-2xl bg-amber-500 p-4 text-white">
+    <a href="/categories/<%= category.id %>/edit">Edit</a>
+</button>
+<button class="rounded-2xl bg-amber-500 p-4 text-white">
+    <a href="/categories/<%= category.id %>/delete">Delete</a>
+</button>
+<button class="rounded-2xl bg-purple-500 p-4 text-white">
+    <a href="/items/create">Create Item</a>
+</button>
+<%- include("../partials/footer") %>
